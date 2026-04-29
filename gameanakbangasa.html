@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Game MTK class 78 - ricky team pari</title>
+    <style>
+        body { 
+            font-family: 'Comic Sans MS', cursive, sans-serif; 
+            background-color: #2c3e50; color: white; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            min-height: 100vh; margin: 0; padding: 10px; box-sizing: border-box;
+        }
+        #game-container { 
+            background: #ecf0f1; color: #333; padding: 15px; border-radius: 20px; 
+            box-shadow: 0 0 25px rgba(255,165,0,0.4); text-align: center; 
+            width: 100%; max-width: 380px; position: relative; border: 5px solid #f39c12; 
+        }
+        .hidden { display: none; }
+        .btn-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; }
+        .btn { 
+            padding: 12px 5px; cursor: pointer; background: #e67e22; color: white; 
+            border: none; border-radius: 10px; font-weight: bold; width: 46%; 
+            font-size: 13px; border-bottom: 4px solid #d35400; transition: 0.1s;
+        }
+        .btn:active { transform: translateY(2px); border-bottom-width: 1px; }
+        .btn-time { width: 30% !important; font-size: 11px !important; margin: 2px; }
+        .btn-menu-top { background: #95a5a6; width: auto; padding: 5px 15px; font-size: 12px; margin-bottom: 10px; border-bottom: 2px solid #7f8c8d; }
+        
+        input { padding: 12px; font-size: 18px; width: 85%; text-align: center; border: 3px solid #f39c12; border-radius: 12px; margin-bottom: 15px; }
+        #canvas-area { width: 100%; height: 80px; background: #87CEEB; margin: 10px 0; border-bottom: 5px solid #2ecc71; position: relative; overflow: hidden; border-radius: 15px; }
+        #stickman { position: absolute; bottom: 5px; left: 10px; font-size: 35px; transition: 0.4s; }
+        
+        #feedback-box { font-weight: bold; margin: 10px 0; min-height: 25px; font-size: 14px; }
+        .text-correct { color: #27ae60; }
+        .text-wrong { color: #e74c3c; }
+
+        .history-list { background: white; border-radius: 10px; padding: 10px; margin-top: 10px; text-align: left; max-height: 200px; overflow-y: auto; border: 2px solid #f39c12; }
+        .history-item { border-bottom: 1px solid #eee; padding: 8px; font-size: 14px; color: #333; font-weight: bold; display: flex; justify-content: space-between; }
+        
+        .footer-78 { font-size: 12px; margin-top: 10px; color: #7f8c8d; font-weight: bold; }
+        .final-score { font-size: 60px; color: #2ecc71; font-weight: 900; margin: 5px 0; }
+        #timer { color: red; font-size: 20px; font-weight: bold; }
+    </style>
+</head>
+<body onload="loadData()">
+
+    <!-- Audio Player (Lagu Santai) -->
+    <audio id="bgMusic" loop>
+        <source src="https://www.bensound.com/bensound-music/bensound-buddy.mp3" type="audio/mpeg">
+    </audio>
+
+    <div id="game-container">
+        <h2 style="margin:5px 0; color:#d35400;">📝  GAME BUATAN CLASS 
+            78</h2>
+        
+        <!-- 1. MENU UTAMA (PILIH LEVEL) -->
+        <div id="menu-level">
+            <p style="font-weight: bold;">PILIH LEVEL:</p>
+            <div class="btn-grid">
+                <button class="btn" onclick="selectLevel('Tambah-tambahan', 30)">1. Tambah-tambahan</button>
+                <button class="btn" onclick="selectLevel('Kurang-kurangan', 30)">2. Kurang-kurangan</button>
+                <button class="btn" onclick="selectLevel('Kali-kalian', 20)">3. Kali-kalian</button>
+                <button class="btn" onclick="selectLevel('Bagi-bagian', 20)">4. Bagi-bagian</button>
+                <button class="btn" onclick="selectLevel('Kuadrat (x²)', 15)">5. Kuadrat (x²)</button>
+                <button class="btn" onclick="selectLevel('Akar Kuadrat', 15)">6. Akar Kuadrat</button>
+                <button class="btn" onclick="selectLevel('Bilangan Desimal', 10)">7. Bilangan Desimal</button>
+                <button class="btn" onclick="selectLevel('Persen (%)', 10)">8. Persen (%)</button>
+                <button class="btn" style="width:94%" onclick="selectLevel('LEVEL FINAL', 10)">9. LEVEL FINAL</button>
+            </div>
+            <p style="font-weight: bold; margin-top: 20px; color:#2980b9;">📊 DATA NILAI PEMAIN:</p>
+            <div id="history-container" class="history-list">Belum ada data nilai.</div>
+            <div class="footer-78">GAME BUATAN ricky team pari</div>
+        </div>
+
+        <!-- 2. PILIH WAKTU -->
+        <div id="menu-waktu" class="hidden">
+            <button class="btn btn-menu-top" onclick="backToMenu()">🏠 MENU UTAMA</button>
+            <p style="font-weight: bold;">PILIH WAKTU PER SOAL:</p>
+            <div class="btn-grid">
+                <button class="btn btn-time" style="background:#e74c3c;" onclick="selectTime(5)">5 DTK</button>
+                <button class="btn btn-time" style="background:#f39c12;" onclick="selectTime(10)">10 DTK</button>
+                <button class="btn btn-time" style="background:#f1c40f;" onclick="selectTime(20)">20 DTK</button>
+                <button class="btn btn-time" style="background:#2ecc71;" onclick="selectTime(40)">40 DTK</button>
+                <button class="btn btn-time" style="background:#3498db;" onclick="selectTime(60)">1 MNIT</button>
+            </div>
+        </div>
+
+        <!-- 3. ISI NAMA -->
+        <div id="menu-nama" class="hidden">
+            <button class="btn btn-menu-top" onclick="backToMenu()">🏠 MENU UTAMA</button>
+            <p style="font-weight: bold;">MASUKKAN NAMAMU:</p>
+            <input type="text" id="player-name" placeholder="Ketik namamu...">
+            <button class="btn" style="width: 90%; background:#27ae60;" onclick="startGame()">START!</button>
+        </div>
+
+        <!-- 4. AREA MAIN -->
+        <div id="game-play" class="hidden">
+            <button class="btn btn-menu-top" onclick="backToMenu()">🏠 MENU UTAMA</button>
+            <div id="question-count" style="font-weight:bold;">Soal: 1 / 30</div>
+            <div id="canvas-area"><div id="stickman">🏃</div></div>
+            <div id="timer">⏱ 10s</div>
+            <div id="feedback-box"></div>
+            <div id="question" style="font-size:30px; margin:10px; font-weight:900;"></div>
+            <input type="text" id="answer-input" placeholder="?">
+            <button class="btn" id="btn-jawab" style="width:120px; background:#2980b9;" onclick="checkAnswer()">JAWAB</button>
+        </div>
+
+        <!-- 5. LAYAR HASIL -->
+        <div id="menu-over" class="hidden">
+            <h2 style="color:#2ecc71;">HASIL NILAI</h2>
+            <div id="final-score-display" class="final-score">0</div>
+            <p id="congrats-text"></p>
+            <button class="btn" style="background:#2ecc71; width:80%;" onclick="backToMenu()">KEMBALI KE MENU</button>
+        </div>
+    </div>
+
+<script>
+    let playerName = "", score = 0, questionNumber = 0, currentLevelName = "", maxQuestions = 30;
+    let correctAnswer = "", timerInterval, baseTime = 10, timeLeft = 10;
+    let allScores = []; 
+    const music = document.getElementById("bgMusic");
+
+    function loadData() {
+        const saved = localStorage.getItem('dataMTK78Final');
+        if(saved) {
+            allScores = JSON.parse(saved);
+            updateHistoryUI();
+        }
+    }
+
+    function selectLevel(name, total) {
+        currentLevelName = name;
+        maxQuestions = total;
+        document.getElementById('menu-level').classList.add('hidden');
+        document.getElementById('menu-waktu').classList.remove('hidden');
+    }
+
+    function selectTime(detik) {
+        baseTime = detik;
+        document.getElementById('menu-waktu').classList.add('hidden');
+        document.getElementById('menu-nama').classList.remove('hidden');
+    }
+
+    function startGame() {
+        playerName = document.getElementById('player-name').value || "Pemain";
+        document.getElementById('menu-nama').classList.add('hidden');
+        document.getElementById('game-play').classList.remove('hidden');
+        
+        // Memutar lagu
+        music.play().catch(e => console.log("Lagu butuh klik user untuk mulai"));
+        
+        score = 0; questionNumber = 0;
+        nextQuestion();
+    }
+
+    function nextQuestion() {
+        questionNumber++;
+        if(questionNumber > maxQuestions) { finishGame(); return; }
+        document.getElementById('question-count').innerText = `Soal: ${questionNumber} / ${maxQuestions}`;
+        document.getElementById('feedback-box').innerText = "";
+        document.getElementById('btn-jawab').disabled = false;
+        generateQuestion();
+    }
+
+    function generateQuestion() {
+        let qText = ""; let ans = 0;
+        
+        if(currentLevelName === "Tambah-tambahan") {
+            let a = Math.floor(Math.random()*50), b = Math.floor(Math.random()*50);
+            qText = `${a} + ${b}`; ans = a + b;
+        } else if(currentLevelName === "Kurang-kurangan") {
+            let a = Math.floor(Math.random()*50)+10, b = Math.floor(Math.random()*a);
+            qText = `${a} - ${b}`; ans = a - b;
+        } else if(currentLevelName === "Kali-kalian") {
+            let a = Math.floor(Math.random()*12)+2, b = Math.floor(Math.random()*12)+2;
+            qText = `${a} x ${b}`; ans = a * b;
+        } else if(currentLevelName === "Bagi-bagian") {
+            let b = Math.floor(Math.random()*10)+2, ansTemp = Math.floor(Math.random()*10)+1;
+            let a = b * ansTemp; qText = `${a} : ${b}`; ans = ansTemp;
+        } else if(currentLevelName === "Kuadrat (x²)") {
+            let a = Math.floor(Math.random()*15)+1; qText = `${a}²`; ans = a * a;
+        } else if(currentLevelName === "Akar Kuadrat") {
+            let ansTemp = Math.floor(Math.random()*12)+1; qText = `√${ansTemp * ansTemp}`; ans = ansTemp;
+        } else if(currentLevelName === "Bilangan Desimal") {
+            let a = (Math.random()*5).toFixed(1), b = (Math.random()*5).toFixed(1);
+            qText = `${a} + ${b}`; ans = (parseFloat(a) + parseFloat(b)).toFixed(1);
+        } else if(currentLevelName === "Persen (%)") {
+            let p = [10, 20, 25, 50][Math.floor(Math.random()*4)], n = Math.floor(Math.random()*10)*10 + 10;
+            qText = `${p}% dari ${n}`; ans = (p/100)*n;
+        } else {
+            let a = Math.floor(Math.random()*100), b = Math.floor(Math.random()*100);
+            qText = `${a} + ${b}`; ans = a + b;
+        }
+
+        document.getElementById('question').innerText = qText;
+        correctAnswer = ans.toString();
+        document.getElementById('answer-input').value = "";
+        document.getElementById('answer-input').focus();
+        startTimer();
+    }
+
+    function startTimer() {
+        timeLeft = baseTime;
+        document.getElementById('timer').innerText = `⏱ ${timeLeft}s`;
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            document.getElementById('timer').innerText = `⏱ ${timeLeft}s`;
+            if(timeLeft <= 0) { 
+                clearInterval(timerInterval);
+                showWrongFeedback(); 
+            }
+        }, 1000);
+    }
+
+    function checkAnswer() {
+        let user = document.getElementById('answer-input').value.trim().replace(',', '.');
+        if(user === "") return;
+        clearInterval(timerInterval);
+        document.getElementById('btn-jawab').disabled = true;
+
+        if(user == correctAnswer) {
+            score += 10;
+            document.getElementById('feedback-box').innerHTML = "<span class='text-correct'>✅ SELAMAT ANDA BENAR!</span>";
+            document.getElementById('stickman').style.left = "80%";
+            setTimeout(() => { 
+                document.getElementById('stickman').style.left = "10px"; 
+                nextQuestion(); 
+            }, 1000);
+        } else {
+            showWrongFeedback();
+        }
+    }
+
+    function showWrongFeedback() {
+        document.getElementById('feedback-box').innerHTML = `<span class='text-wrong'>❌ SALAH! Jawaban Benar: ${correctAnswer}</span>`;
+        setTimeout(nextQuestion, 2000);
+    }
+
+    function finishGame() {
+        clearInterval(timerInterval);
+        music.pause(); music.currentTime = 0;
+        document.getElementById('game-play').classList.add('hidden');
+        document.getElementById('menu-over').classList.remove('hidden');
+        
+        let finalNilai = Math.round((score / (maxQuestions * 10)) * 100);
+        document.getElementById('final-score-display').innerText = finalNilai;
+        document.getElementById('congrats-text').innerText = `Mantap, ${playerName}!`;
+        
+        allScores.push({ nama: playerName, nilai: finalNilai, lvl: currentLevelName });
+        localStorage.setItem('dataMTK78Final', JSON.stringify(allScores));
+        updateHistoryUI();
+    }
+
+    function updateHistoryUI() {
+        const container = document.getElementById('history-container');
+        let html = "";
+        for(let i = allScores.length - 1; i >= 0; i--) {
+            let data = allScores[i];
+            html += `<div class="history-item">
+                        <span>${data.nama}</span>
+                        <span style="color:#e67e22">${data.nilai} (${data.lvl})</span>
+                     </div>`;
+        }
+        container.innerHTML = html || "Belum ada data nilai.";
+    }
+
+    function backToMenu() {
+        clearInterval(timerInterval);
+        music.pause(); music.currentTime = 0;
+        document.getElementById('menu-waktu').classList.add('hidden');
+        document.getElementById('menu-nama').classList.add('hidden');
+        document.getElementById('game-play').classList.add('hidden');
+        document.getElementById('menu-over').classList.add('hidden');
+        document.getElementById('menu-level').classList.remove('hidden');
+        document.getElementById('player-name').value = ""; 
+    }
+
+    document.getElementById("answer-input").addEventListener("keyup", (e) => { if(e.key === "Enter") checkAnswer(); });
+</script>
+</body>
+</html>
