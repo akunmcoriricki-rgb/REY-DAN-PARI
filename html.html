@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NEON GALAXY - BILINGUAL EDITION</title>
+    <style>
+        body { 
+            margin: 0; 
+            background: #05000a; 
+            color: white; 
+            font-family: 'Segoe UI', sans-serif; 
+            overflow: hidden; 
+            touch-action: none; 
+        }
+        canvas { 
+            display: block; 
+            background: radial-gradient(circle, #1a0b2e 0%, #050005 100%); 
+        }
+        
+        #ui { 
+            position: absolute; 
+            width: 100%; 
+            text-align: center; 
+            top: 25px; 
+            pointer-events: none; 
+            z-index: 50; 
+        }
+        #scoreDisp { 
+            font-size: 32px; 
+            color: #00ffff; 
+            text-shadow: 0 0 15px #00ffff; 
+            margin: 0; 
+            font-weight: 900;
+        }
+
+        .btn { 
+            position: absolute; 
+            bottom: 40px; 
+            width: 85px; 
+            height: 85px; 
+            background: rgba(0, 255, 255, 0.1); 
+            border-radius: 50%; 
+            border: 2px solid rgba(0, 255, 255, 0.4); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            font-size: 35px; 
+            color: #00ffff; 
+            user-select: none; 
+            z-index: 100;
+            backdrop-filter: blur(5px);
+        }
+        #leftBtn { left: 25px; }
+        #rightBtn { right: 25px; }
+
+        #startScreen { 
+            position: absolute; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(0,0,0,0.9); 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            z-index: 200; 
+            text-align: center; 
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        h1 { color: #ff00ff; font-size: 40px; margin-bottom: 10px; text-shadow: 0 0 20px #ff00ff; letter-spacing: 4px; }
+        p { font-size: 18px; color: #00ffff; margin-bottom: 30px; line-height: 1.6; }
+        button { 
+            padding: 18px 50px; 
+            font-size: 20px; 
+            cursor: pointer; 
+            background: transparent; 
+            border: 2px solid #ff00ff; 
+            border-radius: 10px; 
+            color: #ff00ff; 
+            font-weight: bold; 
+            text-transform: uppercase;
+            box-shadow: 0 0 15px #ff00ff;
+            transition: 0.3s;
+        }
+        button:hover { background: #ff00ff; color: white; }
+    </style>
+</head>
+<body>
+
+    <div id="startScreen">
+        <h1>NEON LOVE ❤️</h1>
+        <p>buatan rey dan pari
+             (ID/EN)<br>Kumpulkan kata-kata indah & hindari bintang warna-warni!</p>
+        <button onclick="startGame()">START GAME</button>
+    </div>
+
+    <div id="ui">
+        <p id="scoreDisp">SCORE: 0</p>
+    </div>
+
+    <div id="leftBtn" class="btn">◀</div>
+    <div id="rightBtn" class="btn">▶</div>
+
+    <canvas id="gameCanvas"></canvas>
+
+<script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    let audioCtx = null;
+
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    let score = 0;
+    let gameActive = false;
+
+    // Database Pesan 2 Bahasa (Bilingual)
+    const pesanBilingual = [
+        "Aku ingin jadi teman nyamanmu..",
+        "I want to be your comfort zone..",
+        "Atau jadi kekasih hatimu.. ❤️",
+        "Or be the lover of your heart..",
+        "Tak usah kau cari yang lain..",
+        "No need to look for another..",
+        "Cukup aku yang ada di sini..",
+        "Only me, right here for you..",
+        "Jangan lupa makan ya sayang",
+        "Don't forget to eat, darling",
+        "Kamu masa depanku ✨",
+        "You are my future",
+        "Semangat terus hari ini!",
+        "Keep the spirit up today!",
+        "I Love You So Much ❤️",
+        "Aku sangat mencintaimu",
+        "You are my everything",
+        "Kamu segalanya bagiku"
+    ];
+
+    const neonColors = ['#ff00ff', '#00ffff', '#ffff00', '#00ff00', '#ff4500', '#ff0000'];
+
+    function playMusic() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const notes = [440.00, 493.88, 523.25, 349.23, 392.00, 329.63];
+        let i = 0;
+        setInterval(() => {
+            if (!gameActive) return;
+            let osc = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(notes[i % notes.length], audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + 1.2);
+            i++;
+        }, 700);
+    }
+
+    const rocket = { x: canvas.width/2 - 25, y: canvas.height - 150, w: 50, h: 75 };
+    const fallingStars = [];
+    const floatingTexts = [];
+
+    function spawnObstacle() {
+        fallingStars.push({
+            x: Math.random() * (canvas.width - 40) + 20,
+            y: -50,
+            size: Math.random() * 15 + 12,
+            color: neonColors[Math.floor(Math.random() * neonColors.length)],
+            speed: 2.5 + (score / 40)
+        });
+    }
+
+    function spawnText() {
+        floatingTexts.push({
+            x: Math.random() * (canvas.width - 150) + 75,
+            y: -100,
+            text: pesanBilingual[Math.floor(Math.random() * pesanBilingual.length)],
+            color: '#fff',
+            speed: 1.2
+        });
+    }
+
+    function drawStar(cx, cy, spikes, r0, r1, color) {
+        let rot = Math.PI / 2 * 3;
+        let step = Math.PI / spikes;
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - r0);
+        for (let i = 0; i < spikes; i++) {
+            ctx.lineTo(cx + Math.cos(rot) * r0, cy + Math.sin(rot) * r0);
+            rot += step;
+            ctx.lineTo(cx + Math.cos(rot) * r1, cy + Math.sin(rot) * r1);
+            rot += step;
+        }
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = color;
+        ctx.fill();
+        ctx.restore();
+    }
+
+    let moveLeft = false, moveRight = false;
+
+    function startGame() {
+        document.getElementById("startScreen").style.display = "none";
+        gameActive = true;
+        playMusic();
+        animate();
+    }
+
+    const lBtn = document.getElementById("leftBtn"), rBtn = document.getElementById("rightBtn");
+    lBtn.onpointerdown = (e) => { e.preventDefault(); moveLeft = true; };
+    lBtn.onpointerup = () => moveLeft = false;
+    rBtn.onpointerdown = (e) => { e.preventDefault(); moveRight = true; };
+    rBtn.onpointerup = () => moveRight = false;
+    window.onkeydown = (e) => { if(e.key=="ArrowLeft") moveLeft=true; if(e.key=="ArrowRight") moveRight=true; };
+    window.onkeyup = (e) => { if(e.key=="ArrowLeft") moveLeft=false; if(e.key=="ArrowRight") moveRight=false; };
+
+    function update() {
+        if(!gameActive) return;
+        if(moveLeft && rocket.x > 10) rocket.x -= 8;
+        if(moveRight && rocket.x < canvas.width - rocket.w - 10) rocket.x += 8;
+
+        if(Math.random() < 0.04) spawnObstacle();
+        if(Math.random() < 0.008) spawnText();
+
+        fallingStars.forEach((s, i) => {
+            s.y += s.speed;
+            if(s.y + s.size > rocket.y && s.y < rocket.y + rocket.h && 
+               s.x + s.size > rocket.x && s.x < rocket.x + rocket.w) {
+                gameActive = false;
+                alert("GAME OVER! Skor Cinta: " + score);
+                location.reload();
+            }
+            if(s.y > canvas.height) { fallingStars.splice(i, 1); score++; document.getElementById("scoreDisp").innerText = "SCORE: " + score; }
+        });
+
+        floatingTexts.forEach((t, i) => {
+            t.y += t.speed;
+            if(t.y > canvas.height + 150) floatingTexts.splice(i, 1);
+        });
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Rocket
+        ctx.fillStyle = "#00ffff";
+        ctx.shadowBlur = 20; ctx.shadowColor = "#00ffff";
+        ctx.beginPath(); ctx.roundRect(rocket.x, rocket.y, rocket.w, rocket.h, [25, 25, 5, 5]); ctx.fill();
+        ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(rocket.x+rocket.w/2, rocket.y+22, 11, 0, Math.PI*2); ctx.fill();
+
+        // Stars (Rintangan Warna-warni)
+        fallingStars.forEach(s => {
+            drawStar(s.x, s.y, 5, s.size, s.size/2, s.color);
+        });
+
+        // Bilingual Texts
+        floatingTexts.forEach(t => {
+            ctx.shadowBlur = 5; ctx.shadowColor = "#ff00ff";
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 20px 'Segoe UI'";
+            ctx.textAlign = "center";
+            ctx.fillText(t.text, t.x, t.y);
+        });
+    }
+
+    function animate() {
+        if(!gameActive) return;
+        update();
+        draw();
+        requestAnimationFrame(animate);
+    }
+</script>
+</body>
+</html>
